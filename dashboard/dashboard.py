@@ -138,7 +138,10 @@ def plot_state_bars(state_df):
 
 
 def plot_geo(state_df):
-    geo = state_df.dropna(subset=["lat", "lng"])
+    # hanya state dengan minimal 100 pesanan, konsisten dengan grafik batang
+    geo = state_df[state_df["orders"] >= 100].dropna(subset=["lat", "lng"])
+    if geo.empty:
+        return None
     fig, ax = plt.subplots(figsize=(8, 8))
     sizes = geo["customers"] / geo["customers"].max() * 2500 + 60
     sc = ax.scatter(
@@ -149,7 +152,7 @@ def plot_geo(state_df):
         ax.annotate(row["customer_state"], (row["lng"], row["lat"]), ha="center", va="center", fontsize=8)
     cbar = plt.colorbar(sc, ax=ax, shrink=0.7)
     cbar.set_label("Rata-rata waktu pengiriman (hari)")
-    ax.set_title("Sebaran pelanggan dan waktu pengiriman per state", loc="left", fontweight="bold")
+    ax.set_title("Sebaran pelanggan dan waktu pengiriman per state (minimal 100 pesanan)", loc="left", fontweight="bold")
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     ax.set_aspect("equal")
@@ -240,9 +243,15 @@ with tab_geo:
     st.pyplot(fig)
     plt.close(fig)
     fig = plot_geo(state_df)
-    st.pyplot(fig)
-    plt.close(fig)
-    st.caption("Ukuran lingkaran = jumlah pelanggan unik. Warna = rata-rata waktu pengiriman (makin gelap makin lama).")
+    if fig is None:
+        st.info("Tidak ada state dengan minimal 100 pesanan pada rentang tanggal ini.")
+    else:
+        st.pyplot(fig)
+        plt.close(fig)
+    st.caption(
+        "Ukuran lingkaran = jumlah pelanggan unik. Warna = rata-rata waktu pengiriman (makin gelap makin lama). "
+        "Hanya state dengan minimal 100 pesanan yang ditampilkan agar rata-rata cukup representatif."
+    )
     top_state = state_df.iloc[0]
     slow = state_df[state_df["orders"] >= 100].sort_values("avg_delivery_days", ascending=False)
     insight = (
